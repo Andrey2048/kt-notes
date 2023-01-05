@@ -3,7 +3,7 @@ open class Item(var id: Int)
 class ItemNotFoundException(message: String) : RuntimeException(message)
 
 open class CrudService<T : Item> {
-    protected val items = mutableListOf<T>()
+    val items = mutableListOf<T>()
     var counter = 1
     fun add(item: T): T {
         item.id = counter++
@@ -94,6 +94,7 @@ object NoteService : CrudService<Note>() {
 
     fun editComment(cid: Int, newMessage: String): Boolean {
         val editedComment = CommentToNote(cid, newMessage)
+
         for (item in items) {
             for ((index, comment) in item.comments.withIndex()) {
                 if (comment.cid == cid) {
@@ -104,16 +105,18 @@ object NoteService : CrudService<Note>() {
                 }
             }
         }
-        return false
+        throw ItemNotFoundException("No comment with id $cid")
     }
 
     fun getComments(nid: Int): MutableList<CommentToNote> {
         var result = mutableListOf<CommentToNote>()
+        if (!isItemWithId(nid)) throw ItemNotFoundException("No note with id $nid")
         for (item in items) {
             if (item.nid == nid) {
                 result = item.comments
             }
         }
+
         return result
     }
 
@@ -128,7 +131,7 @@ object NoteService : CrudService<Note>() {
                 }
             }
         }
-        return false
+        throw ItemNotFoundException("No comment with id $cid")
     }
 
     fun restoreComment(cid: Int): Boolean {
@@ -143,9 +146,9 @@ object NoteService : CrudService<Note>() {
         return false
     }
 
-    fun printAllComments(noteId: Int, printDeleted: Boolean = true) {
+    fun printAllComments(nid: Int, printDeleted: Boolean = true) {
         for (item in items) {
-            if (item.id == noteId) println(if (printDeleted) item.comments else item.comments.filter { !it.isDeleted })
+            if (item.id == nid) println(if (printDeleted) item.comments else item.comments.filter { !it.isDeleted })
         }
     }
 
@@ -162,6 +165,12 @@ object NoteService : CrudService<Note>() {
             }
         }
         return nid
+    }
+
+    fun clear() {
+        items.clear()
+        counter = 1
+        counterCommentId = 1
     }
 }
 
@@ -197,13 +206,14 @@ fun main() {
     println(NoteService.findNoteByCommentId(3))
 
     NoteService.restoreComment(3)
+    println("***************")
     NoteService.editComment(3, "New comment")
     NoteService.printCommentNote(3)
     println()
     println(NoteService.getComments(4))
     println(NoteService.getComments(3))
     println(NoteService.getComments(2))
-    println(NoteService.getComments(1))
+
 }
 
 
